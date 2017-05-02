@@ -5,9 +5,32 @@
 	EXPORT start_timer
 	EXPORT illuminate_rgb_led
 	EXPORT illuminate_leds
+	EXPORT display_digit
 
+digits_SET	
+		DCD 0x00001F80  ; 0
+ 		DCD 0x00000300  ; 1
+		DCD 0x00002D80	; 2
+		DCD 0x00002780  ; 3
+		DCD 0x00003300  ; 4
+		DCD 0x00003680	; 5
+		DCD 0x00003E80	; 6
+		DCD 0x00000380	; 7
+		DCD 0x00003F80	; 8
+		DCD 0x00003380	; 9
+		DCD 0x00003B80	; A
+		DCD 0x00003F80	; B
+		DCD 0x00001C80	; C
+		DCD 0x00001F80  ; D
+		DCD 0x00003C80	; E		
+		DCD 0x00003880  ; F
+
+	ALIGN
+
+; this shortened library created by Keith Carolus
 ; ------------------------------------------------------------------------
 
+; Keith Carolus and Simran Singh
 pin_connect_block_setup
 	STMFD sp!, {r0-r3, lr}
 		
@@ -91,15 +114,15 @@ pin_connect_block_setup
 	
 	STR r3, [r0]	  ; write out LED clear
 
-	; make the middle horizontal (g) red
+	; make the middle horizontal of 7 segment (g) red
 
-	;LDR r0, =0xE0028004
+	LDR r0, =0xE0028004
 
-	;MOV r1, #0x2000
-	;LDR r2, [r0]
-	;ORR r3, r2, r1
+	MOV r1, #0x2000
+	LDR r2, [r0]
+	ORR r3, r2, r1
 
-	;STR r3, [r0]
+	STR r3, [r0]
 
 	; RGB LED white
 
@@ -126,6 +149,7 @@ pin_connect_block_setup
 
 ; ------------------------------------------------------------------------
 
+; Keith Carolus and Simran Singh
 timer_interrupt_init
 	STMFD SP!, {r0-r1, lr}
 
@@ -153,6 +177,7 @@ timer_interrupt_init
 
 ; ------------------------------------------------------------------------
 
+; Keith Carolus and Simran Singh
 start_timer
 	STMFD SP!, {r0-r2, lr}
 
@@ -173,6 +198,7 @@ start_timer
 
 ; ------------------------------------------------------------------------
 
+; Keith Carolus
 illuminate_rgb_led
 	STMFD SP!,{r1-r4,lr}
 	
@@ -233,6 +259,7 @@ set_color
 
 ; ------------------------------------------------------------------------
 
+; Keith Carolus
 illuminate_leds
 	STMFD SP!,{r1-r3, lr}
 	
@@ -279,6 +306,44 @@ illuminate_leds
 	
 	LDMFD SP!, {r1-r3, lr}
 	BX LR
+
+; ------------------------------------------------------------------------
+
+; Simran Singh
+display_digit
+	STMFD sp!, {lr, r1-r4} ; r0 will be passed as an input
+	
+	MOV r1, #0x2F	; compare this value with the value passed into r0
+	MOV r2, #-4		; offset in digits_SET
+
+seven_seg_loop
+	;  break out of loop if it is equal to what was inputted
+	ADD r1, r1, #1
+	ADD r2, r2, #4
+	CMP r0, r1		
+	BNE seven_seg_loop
+
+print_on_seven_seg
+	LDR r0, =0xE002800C	; IO0CLR
+
+	LDR r1, =0x3F80  ; clear 7 seg
+	LDR r4, [r0]
+	ORR r3, r4, r1
+	
+	STR r3, [r0]	  ; write out clear
+
+	LDR r0, =0xE0028004
+
+	LDR r1, =digits_SET
+	ADD r1, r1, r2		; look at byte in digits_SET at offset
+	LDR r1, [r1]
+	LDR r4, [r0]
+	ORR r3, r4, r1
+
+	STR r3, [r0]      
+
+	LDMFD sp!, {lr, r1-r4}
+	BX lr
 
 ; ------------------------------------------------------------------------
 
